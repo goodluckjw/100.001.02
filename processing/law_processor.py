@@ -143,3 +143,7 @@ def run_amendment_logic(find_word, replace_word):
         )
         amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
+
+def run_search_logic(query, unit):
+    return {"검색결과": [f"제1조 {query}가 포함된 조문입니다."]}
+
