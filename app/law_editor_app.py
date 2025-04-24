@@ -1,14 +1,5 @@
 import streamlit as st
-import sys
-import os
-import importlib.util
-
-# 절대경로로 law_processor 불러오기
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "processing"))
-processor_path = os.path.join(base_dir, "law_processor.py")
-spec = importlib.util.spec_from_file_location("law_processor", processor_path)
-law_processor = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(law_processor)
+from processing import law_processor
 
 # 🔁 함수 직접 연결
 run_search_logic = law_processor.run_search_logic
