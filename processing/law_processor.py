@@ -1,4 +1,3 @@
-
 import requests
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
@@ -46,86 +45,8 @@ def clean(text):
 def highlight(text, keyword):
     return text.replace(keyword, f"<span style='color:red'>{keyword}</span>") if text else ""
 
-def run_search_logic(query, unit):
-    result_dict = {}
-    keyword_clean = clean(query)
-
-    for law in get_law_list_from_api(query):
-        mst = law["MST"]
-        xml_data = get_law_text_by_mst(mst)
-        if not xml_data:
-            continue
-
-        tree = ET.fromstring(xml_data)
-        articles = tree.findall(".//조문단위")
-        law_results = []
-
-        for article in articles:
-            조내용 = article.findtext("조문내용") or ""
-            항들 = article.findall("항")
-            출력덩어리 = []
-            첫_항출력됨 = False
-            첫_항내용_텍스트 = ""
-
-            조출력 = keyword_clean in clean(조내용)
-            if 조출력:
-                출력덩어리.append(highlight(조내용, query))
-
-            for 항 in 항들:
-                항내용 = 항.findtext("항내용") or ""
-                항출력 = keyword_clean in clean(항내용)
-                항덩어리 = []
-                호출력된 = False
-
-                for 호 in 항.findall("호"):
-                    호내용 = 호.findtext("호내용") or ""
-                    if keyword_clean in clean(호내용):
-                        if not 항출력:
-                            항덩어리.append(highlight(항내용, query))
-                            항출력 = True
-                        항덩어리.append("&nbsp;&nbsp;" + highlight(호내용, query))
-                        호출력된 = True
-
-                    for 목 in 호.findall("목"):
-                        목내용_list = 목.findall("목내용")
-                        if 목내용_list:
-                            combined_lines = []
-                            for m in 목내용_list:
-                                if m.text and keyword_clean in clean(m.text):
-                                    combined_lines.extend([
-                                        highlight(line.strip(), query)
-                                        for line in m.text.splitlines() if line.strip()
-                                    ])
-                            if combined_lines:
-                                if not 항출력:
-                                    항덩어리.append(highlight(항내용, query))
-                                    항출력 = True
-                                if not 호출력된:
-                                    항덩어리.append("&nbsp;&nbsp;" + highlight(호내용, query))
-                                항덩어리.extend(["&nbsp;&nbsp;&nbsp;&nbsp;" + l for l in combined_lines])
-
-                if 항출력 or 항덩어리:
-                    if not 조출력 and not 첫_항출력됨:
-                        if 항덩어리:
-                            출력덩어리.append(highlight(조내용, query) + " " + 항덩어리[0])
-                            출력덩어리.extend(항덩어리[1:])
-                        else:
-                            출력덩어리.append(highlight(조내용, query) + " " + highlight(항내용, query))
-                        첫_항내용_텍스트 = 항내용.strip()
-                        첫_항출력됨 = True
-                        조출력 = True
-                    elif 항내용.strip() != 첫_항내용_텍스트:
-                        if 항출력:
-                            출력덩어리.append(highlight(항내용, query))
-                        출력덩어리.extend(항덩어리)
-
-            if 출력덩어리:
-                law_results.append("<br>".join(출력덩어리))
-
-        if law_results:
-            result_dict[law["법령명"]] = law_results
-
-    return result_dict
+def unicircle(n):
+    return chr(9311 + n) if 1 <= n <= 20 else str(n)
 
 def extract_locations(xml_data, keyword):
     tree = ET.fromstring(xml_data)
@@ -145,14 +66,15 @@ def extract_locations(xml_data, keyword):
             항내용 = 항.findtext("항내용", "") or ""
             if keyword_clean in clean(항내용):
                 locations.append(f"제{조번호}조제{항번호}항")
-    return locations
-
-def deduplicate(seq):
-    seen = set()
-    return [x for x in seq if not (x in seen or seen.add(x))]
-
-def format_location_list(locations):
-    return " 및 ".join(locations)
+            for 호 in 항.findall("호"):
+                호내용 = 호.findtext("호내용", "") or ""
+                if keyword_clean in clean(호내용):
+                    locations.append(f"제{조번호}조제{항번호}항")
+                for 목 in 호.findall("목"):
+                    for m in 목.findall("목내용"):
+                        if m.text and keyword_clean in clean(m.text):
+                            locations.append(f"제{조번호}조제{항번호}항")
+    return list(dict.fromkeys(locations))  # 중복 제거 및 순서 유지
 
 def get_josa(word, josa_with_batchim, josa_without_batchim):
     if not word:
@@ -164,7 +86,8 @@ def get_josa(word, josa_with_batchim, josa_without_batchim):
 def run_amendment_logic(find_word, replace_word):
     조사 = get_josa(find_word, "을", "를")
     amendment_results = []
-    for law in get_law_list_from_api(find_word):
+    laws = get_law_list_from_api(find_word)
+    for idx, law in enumerate(laws):
         law_name = law["법령명"]
         mst = law["MST"]
         xml = get_law_text_by_mst(mst)
@@ -173,7 +96,9 @@ def run_amendment_logic(find_word, replace_word):
         locations = extract_locations(xml, find_word)
         if not locations:
             continue
-        loc_str = format_location_list(deduplicate(locations))
-        sentence = f"① {law_name} 일부를 다음과 같이 개정한다. {loc_str} 중 “{find_word}”{조사} 각각 “{replace_word}”로 한다."
+        loc_str = " 및 ".join(locations)
+        각각 = "각각 " if len(locations) > 1 else ""
+        sentence = f"➤ {unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다. {loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다."
         amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
+
