@@ -149,11 +149,9 @@ def run_amendment_logic(find_word, replace_word):
             continue
         loc_str = format_location_groups(raw_locations)
         각각 = "각각 " if len(raw_locations) > 1 else ""
-        sentence = (
-            f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.<br>"
+        sentence = (f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.<br>"
              #  f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.<br>&nbsp;&nbsp;" 로 하면 줄바꾸고 두칸 띄움
-            f"{loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다."
-        )
+                    f"{loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다.")
         amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
 
