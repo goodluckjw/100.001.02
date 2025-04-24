@@ -1,3 +1,4 @@
+
 import requests
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
@@ -98,7 +99,7 @@ def extract_locations(xml_data, keyword):
                         if m.text and keyword_clean in clean(m.text):
                             raw_목번호 = 목.findtext("목번호", "").strip().replace(".", "")
                             항출력 = 항번호 if has_항번호 else None
-                            locations.append((조번호, 항출력, raw_호번호, raw_목번호, m.text.strip()))
+                            locations.append((조번호, 항출트, raw_호번호, raw_목번호, m.text.strip()))
     return locations
 
 def format_location_groups(locations):
@@ -123,7 +124,38 @@ def format_location_groups(locations):
 
         묶인 = []
         for 항, 표현들 in 항별묶음.items():
-            if 표현들 and all("호" in p or "목" 트 = loc
+            if 표현들 and all(("호" in p or "목" in p) for p in 표현들):
+                묶음 = "ㆍ".join([re.sub(r"제\d+항", "", p) for p in 표현들])
+                묶인.append(f"제{항}항{묶음}" if 항 else 묶음)
+            else:
+                묶인.extend(표현들)
+
+        parts.append(f"{조}" + "ㆍ".join(묶인))
+    return ", ".join(parts[:-1]) + " 및 " + parts[-1] if len(parts) > 1 else parts[0]
+
+def unicircle(n):
+    if 1 <= n <= 20:
+        return chr(9311 + n)
+    return f"<span class='circle-number'>{n}</span>"
+
+def run_amendment_logic(find_word, replace_word):
+    을를 = 조사_을를(find_word)
+    으로로 = 조사_으로로(replace_word)
+    amendment_results = []
+    laws = get_law_list_from_api(find_word)
+    for idx, law in enumerate(laws):
+        law_name = law["법령명"]
+        mst = law["MST"]
+        xml = get_law_text_by_mst(mst)
+        if not xml:
+            continue
+        all_locations = extract_locations(xml, find_word)
+        if not all_locations:
+            continue
+
+        chunk_groups = defaultdict(list)
+        for loc in all_locations:
+            조, 항, 호, 목, 텍스트 = loc
             m = re.search(r"(\w*?%s)" % re.escape(find_word), 텍스트)
             chunk = m.group(1) if m else find_word
             chunk_groups[chunk].append((조, 항, 호, 목))
