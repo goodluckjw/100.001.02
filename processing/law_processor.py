@@ -129,7 +129,7 @@ def format_location_groups(locations):
     return ", ".join(parts[:-1]) + " 및 " + parts[-1] if len(parts) > 1 else parts[0]
 
 def unicircle(n):
-    return chr(9311 + n) if 1 <= n <= 99 else str(n)
+    return chr(9311 + n) if 1 <= n <= 20 else str(n)
 
 def run_amendment_logic(find_word, replace_word):
     조사 = get_josa(find_word, "을", "를")
