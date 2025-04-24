@@ -51,6 +51,15 @@ def get_josa(word, josa_with_batchim, josa_without_batchim):
     code = ord(last_char)
     return josa_with_batchim if (code - 44032) % 28 != 0 else josa_without_batchim
 
+import unicodedata
+
+def normalize_number(text):
+    # 유니코드 숫자 (①, ② 등)를 일반 숫자 문자열로 변환
+    try:
+        return str(int(unicodedata.numeric(text)))
+    except:
+        return text
+
 def extract_locations(xml_data, keyword):
     tree = ET.fromstring(xml_data)
     articles = tree.findall(".//조문단위")
@@ -68,7 +77,7 @@ def extract_locations(xml_data, keyword):
             locations.append((조번호, None, None, None))
 
         for 항 in article.findall("항"):
-            항번호 = 항.findtext("항번호", "").strip()
+            항번호 = normalize_number(항.findtext("항번호", "").strip())
             항내용 = 항.findtext("항내용") or ""
             has_항번호 = 항번호.isdigit()
             if keyword_clean in clean(항내용) and has_항번호:
