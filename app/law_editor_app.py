@@ -36,7 +36,6 @@ run_search_logic = law_processor.run_search_logic
 run_amendment_logic = law_processor.run_amendment_logic
 
 # 🖼️ UI 설정
-st.set_page_config(layout="wide")
 st.title("📘 부칙개정 도우미")
 
 with st.expander("ℹ️ 읽어주세요"):
