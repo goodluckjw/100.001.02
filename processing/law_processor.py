@@ -154,7 +154,7 @@ def run_amendment_logic(find_word, replace_word):
 
         chunk_groups = defaultdict(list)
         for loc in all_locations:
-            조, 항, 호, 목, 텍스트 = loc
+            조, 항, 호, 목 = loc
             m = re.search(r"(\w*?%s)" % re.escape(find_word), 텍스트)
             chunk = m.group(1) if m else find_word
             chunk_groups[chunk].append((조, 항, 호, 목))
