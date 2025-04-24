@@ -1,3 +1,19 @@
+st.markdown("""
+<style>
+.circle-number {
+    display: inline-block;
+    border: 1px solid #000;
+    border-radius: 50%;
+    width: 1.4em;
+    height: 1.4em;
+    text-align: center;
+    line-height: 1.4em;
+    font-weight: bold;
+    margin-right: 0.4em;
+}
+</style>
+""", unsafe_allow_html=True)
+
 import streamlit as st
 import sys
 import os
