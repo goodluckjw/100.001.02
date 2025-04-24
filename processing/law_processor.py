@@ -1,4 +1,3 @@
-
 import requests
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
@@ -86,19 +85,20 @@ def extract_locations(xml_data, keyword):
             항내용 = 항.findtext("항내용") or ""
             has_항번호 = 항번호.isdigit()
             if keyword_clean in clean(항내용) and has_항번호:
-                항내용 = re.sub(r'^[①-⑳]', '', 항내용).strip()
-                locations.append((조번호, 항번호, None, None, 항내용))
+                locations.append((조번호, 항번호, None, None, 항내용.strip()))
 
             for 호 in 항.findall("호"):
                 raw_호번호 = 호.findtext("호번호", "").strip().replace(".", "")
                 호내용 = 호.findtext("호내용", "") or ""
                 if keyword_clean in clean(호내용):
-                    locations.append((조번호, 항번호 if has_항번호 else None, raw_호번호, None, 호내용.strip()))
+                    항출력 = 항번호 if has_항번호 else None
+                    locations.append((조번호, 항출력, raw_호번호, None, 호내용.strip()))
                 for 목 in 호.findall("목"):
                     for m in 목.findall("목내용"):
                         if m.text and keyword_clean in clean(m.text):
                             raw_목번호 = 목.findtext("목번호", "").strip().replace(".", "")
-                            locations.append((조번호, 항번호 if has_항번호 else None, raw_호번호, raw_목번호, m.text.strip()))
+                            항출력 = 항번호 if has_항번호 else None
+                            locations.append((조번호, 항출력, raw_호번호, raw_목번호, m.text.strip()))
     return locations
 
 def format_location_groups(locations):
@@ -124,11 +124,11 @@ def format_location_groups(locations):
         항모음 = [x[1] for x in 항목들 if x[1]]
         if 제목있음 and 항모음:
             all_parts = ["제목"] + 항모음
-            parts.append(f"{조key} " + "ㆍ".join(all_parts))
+            parts.append(f"{조key} " + "·".join(all_parts))
         elif 제목있음:
             parts.append(f"{조key} 제목")
         elif 항모음:
-            parts.append(f"{조key}" + "ㆍ".join(항모음))
+            parts.append(f"{조key}" + "·".join(항모음))
         else:
             parts.append(f"{조key}")
     return ", ".join(parts[:-1]) + " 및 " + parts[-1] if len(parts) > 1 else parts[0]
@@ -152,6 +152,7 @@ def run_amendment_logic(find_word, replace_word):
         all_locations = extract_locations(xml, find_word)
         if not all_locations:
             continue
+
         chunk_groups = defaultdict(list)
         for loc in all_locations:
             조, 항, 호, 목, 텍스트 = loc
@@ -165,7 +166,23 @@ def run_amendment_logic(find_word, replace_word):
             new_chunk = chunk.replace(find_word, replace_word)
             sentence = (
                 f"{unicircle(len(amendment_results)+1)} {law_name} 일부를 다음과 같이 개정한다.<br>"
-                f"{loc_str} 중 “{chunk}”{을를} {각각}“{new_chunk}”{으로로} 한다."
+                f"{loc_str} 중 \u201c{chunk}\u201d{을를} {각각}\u201c{new_chunk}\u201d{으로로} 한다."
             )
             amendment_results.append(sentence)
-    return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
+    return amendment_results if amendment_results else ["\u26a0\ufe0f 개정 대상 조문이 없습니다."]
+
+def run_search_logic(query, unit):
+    laws = get_law_list_from_api(query)
+    result = {}
+    for law in laws:
+        law_name = law["법령명"]
+        mst = law["MST"]
+        xml = get_law_text_by_mst(mst)
+        if not xml:
+            continue
+        locs = extract_locations(xml, query)
+        if not locs:
+            continue
+        grouped = format_location_groups(locs)
+        result[law_name] = [f"<div>{grouped}</div>"]
+    return result
