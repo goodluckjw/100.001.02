@@ -1,3 +1,4 @@
+
 import requests
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
@@ -85,22 +86,19 @@ def extract_locations(xml_data, keyword):
             항내용 = 항.findtext("항내용") or ""
             has_항번호 = 항번호.isdigit()
             if keyword_clean in clean(항내용) and has_항번호:
-                locations.append((조번호, 항번호, None, None, 항내용.strip()))
+                항내용 = re.sub(r'^[①-⑳]', '', 항내용).strip()
+                locations.append((조번호, 항번호, None, None, 항내용))
 
             for 호 in 항.findall("호"):
                 raw_호번호 = 호.findtext("호번호", "").strip().replace(".", "")
                 호내용 = 호.findtext("호내용", "") or ""
                 if keyword_clean in clean(호내용):
-                    항출력 = 항번호 if has_항번호 else None
-                    항출력 = 항번호 if has_항번호 else None  # ✅ 이 줄이 중요
-                    locations.append((조번호, 항출력, raw_호번호, None, 호내용.strip()))
-                     
+                    locations.append((조번호, 항번호 if has_항번호 else None, raw_호번호, None, 호내용.strip()))
                 for 목 in 호.findall("목"):
                     for m in 목.findall("목내용"):
                         if m.text and keyword_clean in clean(m.text):
                             raw_목번호 = 목.findtext("목번호", "").strip().replace(".", "")
-                            항출력 = 항번호 if has_항번호 else None
-                            locations.append((조번호, 항출력, raw_호번호, raw_목번호, m.text.strip()))
+                            locations.append((조번호, 항번호 if has_항번호 else None, raw_호번호, raw_목번호, m.text.strip()))
     return locations
 
 def format_location_groups(locations):
@@ -154,7 +152,6 @@ def run_amendment_logic(find_word, replace_word):
         all_locations = extract_locations(xml, find_word)
         if not all_locations:
             continue
-
         chunk_groups = defaultdict(list)
         for loc in all_locations:
             조, 항, 호, 목, 텍스트 = loc
@@ -172,8 +169,3 @@ def run_amendment_logic(find_word, replace_word):
             )
             amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
-
-# 파일 맨 마지막에 추가
-def run_search_logic(query, unit):
-    return {"검색결과": [f"제1조 {query}가 포함된 조문입니다."]}
-
