@@ -77,101 +77,51 @@ def extract_locations(xml_data, keyword):
         조내용 = article.findtext("조문내용", "") or ""
 
         if keyword_clean in clean(조제목):
-            locations.append((조번호, None, None, None, 조제목.strip()))
+            locations.append((조번호, None, None, None, 조제목.strip(), "제목"))
         if keyword_clean in clean(조내용):
-            locations.append((조번호, None, None, None, 조내용.strip()))
+            locations.append((조번호, None, None, None, 조내용.strip(), "조문"))
 
         for 항 in article.findall("항"):
             항번호 = normalize_number(항.findtext("항번호", "").strip())
             항내용 = 항.findtext("항내용") or ""
             has_항번호 = 항번호.isdigit()
             if keyword_clean in clean(항내용) and has_항번호:
-                locations.append((조번호, 항번호, None, None, 항내용.strip()))
+                locations.append((조번호, 항번호, None, None, 항내용.strip(), "항"))
 
             for 호 in 항.findall("호"):
-                raw_호번호 = 호.findtext("호번호", "").strip().replace(".", "")
-                호내용 = 호.findtext("호내용", "") or ""
-                if keyword_clean in clean(호내용):
-                    항출력 = 항번호 if has_항번호 else None
-                    locations.append((조번호, 항출력, raw_호번호, None, 호내용.strip()))
-                for 목 in 호.findall("목"):
-                    for m in 목.findall("목내용"):
-                        if m.text and keyword_clean in clean(m.text):
-                            raw_목번호 = 목.findtext("목번호", "").strip().replace(".", "")
-                            항출력 = 항번호 if has_항번호 else None
-                            locations.append((조번호, 항출력, raw_호번호, raw_목번호, m.text.strip()))
+                raw_호번호 = 호.find력, raw_호번호, raw_목번호, m.text.strip(), "목"))
     return locations
 
 def format_location_groups(locations):
     grouped = defaultdict(list)
-    조문제목s = {조: 제목 for 조, _, _, _, 제목 in locations if 제목}
-    for 조, 항, 호, 목, _ in locations:
-        key = f"제{조}조 제목" if (조문제목 := 조문제목s.get(조)) else f"제{조}조"
-        if 목:
-            detail = f"제{항}항제{호}호{목}목" if 항 else f"제{호}호{목}목"
-        elif 호:
-            detail = f"제{항}항제{호}호" if 항 else f"제{호}호"
-        elif 항:
-            detail = f"제{항}항"
+    for 조, 항, 호, 목, _, 타입 in locations:
+        key = f"제{조}조"
+        if 타입 == "제목":
+            grouped[key].append(("제목", f"{key} 제목"))
         else:
-            detail = ""
-        grouped[key].append((항 or "", detail))
+            if 목:
+                detail = f"제{항}항제{호}호{목}목" if 항 else f"제{호}호{목}목"
+            elif 호:
+                detail = f"제{항}항제{호}호" if 항 else f"제{호}호"
+            elif 항:
+                detail = f"제{항}항"
+            else:
+                detail = ""
+            grouped[key].append((항 or "", detail))
 
     parts = []
     for 조, 항목리스트 in grouped.items():
-        항별묶음 = defaultdict(list)
-        for 항, 표현 in 항목리스트:
-            항별묶음[항].append(표현)
+        제목들 = [p for 항, p in 항목리스트 if 항 == "제목"]
+        비제목들 = [p for 항, p in 항목리스트 if 항 != "제목"]
 
-        묶인 = []
-        for 항, 표현들 in 항별묶음.items():
-            if 표현들 and all("호" in p or "목" in p for p in 표현들):
-                묶음 = "ㆍ".join([re.sub(r"제\d+항", "", p) for p in 표현들])
-                묶인.append(f"제{항}항{묶음}" if 항 else 묶음)
-            else:
-                묶인.extend(표현들)
+        조부 = ""
+        if 제목들 and 비제목들:
+            조부 = f"{제목들[0]}ㆍ" + "ㆍ".join(비제목들)
+        elif 제목들:
+            조부 = 제목들[0]
+        else:
+            조부 = "ㆍ".join(비제목들)
 
-        parts.append(f"{조}" + "ㆍ".join(묶인))
+        parts.append(조부)
+
     return ", ".join(parts[:-1]) + " 및 " + parts[-1] if len(parts) > 1 else parts[0]
-
-def unicircle(n):
-    if 1 <= n <= 20:
-        return chr(9311 + n)
-    return f"<span class='circle-number'>{n}</span>"
-
-def run_amendment_logic(find_word, replace_word):
-    을를 = 조사_을를(find_word)
-    으로로 = 조사_으로로(replace_word)
-    amendment_results = []
-    laws = get_law_list_from_api(find_word)
-    for idx, law in enumerate(laws):
-        law_name = law["법령명"]
-        mst = law["MST"]
-        xml = get_law_text_by_mst(mst)
-        if not xml:
-            continue
-        all_locations = extract_locations(xml, find_word)
-        if not all_locations:
-            continue
-
-        chunk_groups = defaultdict(list)
-        for loc in all_locations:
-            조, 항, 호, 목, 텍스트 = loc
-            m = re.search(r"(\w*?%s)" % re.escape(find_word), 텍스트)
-            chunk = m.group(1) if m else find_word
-            chunk_groups[chunk].append((조, 항, 호, 목, 텍스트))
-
-        for chunk, locs in chunk_groups.items():
-            각각 = "각각 " if len(locs) > 1 else ""
-            loc_str = format_location_groups(locs)
-            new_chunk = chunk.replace(find_word, replace_word)
-            sentence = (
-                f"{unicircle(len(amendment_results)+1)} {law_name} 일부를 다음과 같이 개정한다.<br>"
-                f"{loc_str} 중 “{chunk}”{을를} {각각}“{new_chunk}”{으로로} 한다."
-            )
-            amendment_results.append(sentence)
-
-    return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
-
-def run_search_logic(query, unit):
-    return {"검색결과": [f"제1조 {query}가 포함된 조문입니다."]}
