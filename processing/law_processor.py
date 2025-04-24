@@ -134,8 +134,26 @@ def unicircle(n):
     # HTML 동그라미 숫자 스타일
     return f"<span class='circle-number'>{n}</span>"
 
+def 조사_을를(word):
+    """받침이 있으면 '을', 없으면 '를'"""
+    if not word:
+        return "을"
+    code = ord(word[-1]) - 0xAC00
+    jong = code % 28
+    return "를" if jong == 0 else "을"
+
+def 조사_으로로(word):
+    """받침이 없거나 받침이 ㄹ이면 '로', 그 외는 '으로'"""
+    if not word:
+        return "으로"
+    code = ord(word[-1]) - 0xAC00
+    jong = code % 28
+    return "로" if jong == 0 or jong == 8 else "으로"
+
+
 def run_amendment_logic(find_word, replace_word):
-    조사 = get_josa(find_word, "을", "를")
+    을를 = 조사_을를(find_word)
+    으로로 = 조사_으로로(replace_word)
     amendment_results = []
     laws = get_law_list_from_api(find_word)
     for idx, law in enumerate(laws):
@@ -149,9 +167,9 @@ def run_amendment_logic(find_word, replace_word):
             continue
         loc_str = format_location_groups(raw_locations)
         각각 = "각각 " if len(raw_locations) > 1 else ""
-        sentence = (f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.<br>"
-             #  f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.<br>&nbsp;&nbsp;" 로 하면 줄바꾸고 두칸 띄움
-                    f"{loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다.")
+        sentence = (f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.<br>"    
+            #  f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.<br>&nbsp;&nbsp;" 로 하면 줄바꾸고 두칸 띄움
+    f"{loc_str} 중 “{find_word}”{을를} {각각}“{replace_word}”{으로로} 한다.")
         amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
 
