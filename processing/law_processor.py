@@ -103,7 +103,7 @@ def extract_locations(xml_data, keyword):
 
 def format_location_groups(locations):
     grouped = defaultdict(list)
-    for 조, 항, 호, 목, _ in locations:
+    for 조, 항, 호, 목 in locations:
         key = f"제{조}조"
         if 목:
             detail = f"제{항}항제{호}호{목}목" if 항 else f"제{호}호{목}목"
