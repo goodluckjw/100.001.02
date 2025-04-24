@@ -42,13 +42,16 @@ def get_law_text_by_mst(mst):
 def clean(text):
     return re.sub(r"\s+", "", text or "")
 
+def unicircle(n):
+    return chr(9311 + n) if 1 <= n <= 20 else str(n)
+
 def extract_locations(xml_data, keyword):
     tree = ET.fromstring(xml_data)
     articles = tree.findall(".//조문단위")
     keyword_clean = clean(keyword)
     locations = []
     for article in articles:
-        조번호 = article.findtext("조번호", "").strip()
+        조번호 = article.findtext("조문번호", "").strip()
         조제목 = article.findtext("조문제목", "") or ""
         조내용 = article.findtext("조문내용", "") or ""
         if keyword_clean in clean(조제목):
@@ -69,7 +72,7 @@ def extract_locations(xml_data, keyword):
                     for m in 목.findall("목내용"):
                         if m.text and keyword_clean in clean(m.text):
                             locations.append(f"제{조번호}조제{항번호}항제{호번호}호")
-    return list(dict.fromkeys(locations))  # 중복 제거
+    return list(dict.fromkeys(locations))
 
 def get_josa(word, josa_with_batchim, josa_without_batchim):
     if not word:
@@ -93,6 +96,9 @@ def run_amendment_logic(find_word, replace_word):
             continue
         loc_str = " 및 ".join(locations)
         각각 = "각각 " if len(locations) > 1 else ""
-        sentence = f"{idx+1:>2}. {law_name} 일부를 다음과 같이 개정한다. {loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다."
+        sentence = f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다. {loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다."
         amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
+
+def run_search_logic(query, unit):
+    return {"검색결과": ["기존 run_search_logic은 생략됨 (이 파일은 개정문 중심입니다)."]}
