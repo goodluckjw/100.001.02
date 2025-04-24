@@ -92,7 +92,9 @@ def extract_locations(xml_data, keyword):
                 호내용 = 호.findtext("호내용", "") or ""
                 if keyword_clean in clean(호내용):
                     항출력 = 항번호 if has_항번호 else None
+                    항출력 = 항번호 if has_항번호 else None  # ✅ 이 줄이 중요
                     locations.append((조번호, 항출트, raw_호번호, None, 호내용.strip()))
+                     
                 for 목 in 호.findall("목"):
                     for m in 목.findall("목내용"):
                         if m.text and keyword_clean in clean(m.text):
