@@ -1,5 +1,7 @@
 import streamlit as st
 
+st.set_page_config(layout="wide")  # ✅ 무조건 가장 먼저!
+
 # 스타일 정의
 st.markdown("""
 <style>
