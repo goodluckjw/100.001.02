@@ -1,3 +1,4 @@
+
 import requests
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
@@ -92,7 +93,6 @@ def format_location_groups(locations):
     for 조, 항, 호, 목 in locations:
         key = f"제{조}조"
         if 목:
-            # 목은 '제' 생략
             detail = f"제{항}항제{호}호{목}목" if 항 else f"제{호}호{목}목"
         elif 호:
             detail = f"제{항}항제{호}호" if 항 else f"제{호}호"
@@ -138,9 +138,9 @@ def run_amendment_logic(find_word, replace_word):
         loc_str = format_location_groups(raw_locations)
         각각 = "각각 " if len(raw_locations) > 1 else ""
         sentence = (
-    f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.\n"
-    f"{loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다."
-)
-      
+            f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.
+"
+            f"{loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다."
+        )
         amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
