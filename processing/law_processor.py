@@ -99,13 +99,13 @@ def extract_locations(xml_data, keyword):
                         if m.text and keyword_clean in clean(m.text):
                             raw_목번호 = 목.findtext("목번호", "").strip().replace(".", "")
                             항출력 = 항번호 if has_항번호 else None
-                            locations.append((조번호, 항출트, raw_호번호, raw_목번호, m.text.strip()))
+                            locations.append((조번호, 항출력, raw_호번호, raw_목번호, m.text.strip()))
     return locations
 
 def format_location_groups(locations):
     grouped = defaultdict(list)
-    for 조, 항, 호, 목 in locations:
-        key = f"제{조}조"
+    for 조, 항, 호, 목, _ in locations:
+        key = f"제{조}조 제목" if (조문제목 := 조문제목s.get(조)) else f"제{조}조"
         if 목:
             detail = f"제{항}항제{호}호{목}목" if 항 else f"제{호}호{목}목"
         elif 호:
@@ -124,7 +124,7 @@ def format_location_groups(locations):
 
         묶인 = []
         for 항, 표현들 in 항별묶음.items():
-            if 표현들 and all(("호" in p or "목" in p) for p in 표현들):
+            if 표현들 and all("호" in p or "목" in p for p in 표현들):
                 묶음 = "ㆍ".join([re.sub(r"제\d+항", "", p) for p in 표현들])
                 묶인.append(f"제{항}항{묶음}" if 항 else 묶음)
             else:
