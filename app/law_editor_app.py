@@ -1,3 +1,6 @@
+import streamlit as st
+
+# 스타일 정의
 st.markdown("""
 <style>
 .circle-number {
