@@ -129,7 +129,10 @@ def format_location_groups(locations):
     return ", ".join(parts[:-1]) + " 및 " + parts[-1] if len(parts) > 1 else parts[0]
 
 def unicircle(n):
-    return chr(9311 + n) if 1 <= n <= 20 else str(n)
+    if 1 <= n <= 20:
+        return chr(9311 + n)
+    # HTML 동그라미 숫자 스타일
+    return f"<span style='display:inline-block;border:1px solid #000;border-radius:50%;width:1.4em;height:1.4em;text-align:center;line-height:1.4em;font-weight:bold;'>{n}</span>"
 
 def run_amendment_logic(find_word, replace_word):
     조사 = get_josa(find_word, "을", "를")
