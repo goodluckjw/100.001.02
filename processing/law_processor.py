@@ -74,7 +74,7 @@ def extract_locations(xml_data, keyword):
                     for m in 목.findall("목내용"):
                         if m.text and keyword_clean in clean(m.text):
                             locations.append(f"제{조번호}조제{항번호}항")
-    return list(dict.fromkeys(locations))  # 중복 제거 및 순서 유지
+    return list(dict.fromkeys(locations))  # 중복 제거
 
 def get_josa(word, josa_with_batchim, josa_without_batchim):
     if not word:
@@ -102,3 +102,64 @@ def run_amendment_logic(find_word, replace_word):
         amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
 
+def run_search_logic(query, unit):
+    result_dict = {}
+    keyword_clean = clean(query)
+    for law in get_law_list_from_api(query):
+        mst = law["MST"]
+        xml_data = get_law_text_by_mst(mst)
+        if not xml_data:
+            continue
+        tree = ET.fromstring(xml_data)
+        articles = tree.findall(".//조문단위")
+        law_results = []
+        for article in articles:
+            조내용 = article.findtext("조문내용") or ""
+            항들 = article.findall("항")
+            출력덩어리 = []
+            첫_항출력됨 = False
+            첫_항내용_텍스트 = ""
+            조출력 = keyword_clean in clean(조내용)
+            if 조출력:
+                출력덩어리.append(highlight(조내용, query))
+            for 항 in 항들:
+                항내용 = 항.findtext("항내용") or ""
+                항출력 = keyword_clean in clean(항내용)
+                항덩어리 = []
+                호출력된 = False
+                for 호 in 항.findall("호"):
+                    호내용 = 호.findtext("호내용", "") or ""
+                    if keyword_clean in clean(호내용):
+                        if not 항출력:
+                            항덩어리.append(highlight(항내용, query))
+                            항출력 = True
+                        항덩어리.append("&nbsp;&nbsp;" + highlight(호내용, query))
+                        호출력된 = True
+                    for 목 in 호.findall("목"):
+                        for m in 목.findall("목내용"):
+                            if m.text and keyword_clean in clean(m.text):
+                                if not 항출력:
+                                    항덩어리.append(highlight(항내용, query))
+                                    항출력 = True
+                                if not 호출력된:
+                                    항덩어리.append("&nbsp;&nbsp;" + highlight(호내용, query))
+                                항덩어리.extend(["&nbsp;&nbsp;&nbsp;&nbsp;" + highlight(line.strip(), query) for line in m.text.splitlines() if line.strip()])
+                if 항출력 or 항덩어리:
+                    if not 조출력 and not 첫_항출력됨:
+                        if 항덩어리:
+                            출력덩어리.append(highlight(조내용, query) + " " + 항덩어리[0])
+                            출력덩어리.extend(항덩어리[1:])
+                        else:
+                            출력덩어리.append(highlight(조내용, query) + " " + highlight(항내용, query))
+                        첫_항내용_텍스트 = 항내용.strip()
+                        첫_항출력됨 = True
+                        조출력 = True
+                    elif 항내용.strip() != 첫_항내용_텍스트:
+                        if 항출력:
+                            출력덩어리.append(highlight(항내용, query))
+                        출력덩어리.extend(항덩어리)
+            if 출력덩어리:
+                law_results.append("<br>".join(출력덩어리))
+        if law_results:
+            result_dict[law["법령명"]] = law_results
+    return result_dict
