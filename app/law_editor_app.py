@@ -66,4 +66,4 @@ if do_amend and find_word and replace_word:
         amend_result = run_amendment_logic(find_word, replace_word)
         st.success("생성 완료")
         for amend in amend_result:
-            st.markdown(f"➤ {amend}")
+            st.markdown(amend, unsafe_allow_html=True)
