@@ -1,14 +1,5 @@
 import streamlit as st
-import sys
-import os
-import importlib.util
-
-# 🔐 현재 작업 디렉토리 기준으로 law_processor.py 절대경로 import
-base_dir = os.path.abspath(os.path.join(os.getcwd(), "processing"))
-processor_path = os.path.join(base_dir, "law_processor.py")
-spec = importlib.util.spec_from_file_location("law_processor", processor_path)
-law_processor = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(law_processor)
+from processing import law_processor
 
 # 🔁 함수 직접 연결
 run_search_logic = law_processor.run_search_logic
@@ -55,4 +46,4 @@ if do_amend and find_word and replace_word:
         amend_result = run_amendment_logic(find_word, replace_word)
         st.success("생성 완료")
         for amend in amend_result:
-            st.markdown(f"➤ {amend}")# Streamlit app main file
+            st.markdown(f"➤ {amend}")
