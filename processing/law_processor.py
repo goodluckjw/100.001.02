@@ -91,25 +91,33 @@ def format_location_groups(locations):
     grouped = defaultdict(list)
     for 조, 항, 호, 목 in locations:
         key = f"제{조}조"
-        detail = ""
         if 목:
-            detail = f"제{항}항제{호}호제{목}목" if 항 else f"제{호}호제{목}목"
+            # 목은 '제' 생략
+            detail = f"제{항}항제{호}호{목}목" if 항 else f"제{호}호{목}목"
         elif 호:
             detail = f"제{항}항제{호}호" if 항 else f"제{호}호"
         elif 항:
             detail = f"제{항}항"
-        grouped[key].append(detail)
+        else:
+            detail = ""
+        grouped[key].append((항 or "", detail))
 
     parts = []
-    for i, (조, details) in enumerate(grouped.items()):
-        if details and all(details):
-            inner = "ㆍ".join(detail for detail in details)
-            parts.append(f"{조}{inner}")
-        else:
-            parts.append(f"{조}")
-    if len(parts) > 1:
-        return ", ".join(parts[:-1]) + " 및 " + parts[-1]
-    return parts[0]
+    for 조, 항목리스트 in grouped.items():
+        항별묶음 = defaultdict(list)
+        for 항, 표현 in 항목리스트:
+            항별묶음[항].append(표현)
+
+        묶인 = []
+        for 항, 표현들 in 항별묶음.items():
+            if 표현들 and all("호" in p or "목" in p for p in 표현들):
+                묶음 = "ㆍ".join([re.sub(r"제\d+항", "", p) for p in 표현들])
+                묶인.append(f"제{항}항{묶음}" if 항 else 묶음)
+            else:
+                묶인.extend(표현들)
+
+        parts.append(f"{조}" + "ㆍ".join(묶인))
+    return ", ".join(parts[:-1]) + " 및 " + parts[-1] if len(parts) > 1 else parts[0]
 
 def unicircle(n):
     return chr(9311 + n) if 1 <= n <= 20 else str(n)
@@ -129,9 +137,7 @@ def run_amendment_logic(find_word, replace_word):
             continue
         loc_str = format_location_groups(raw_locations)
         각각 = "각각 " if len(raw_locations) > 1 else ""
-        sentence = f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.<br>{loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다."
+        sentence = f"{unicircle(idx+1)} {law_name} 일부를 다음과 같이 개정한다.
+{loc_str} 중 “{find_word}”{조사} {각각}“{replace_word}”로 한다."
         amendment_results.append(sentence)
     return amendment_results if amendment_results else ["⚠️ 개정 대상 조문이 없습니다."]
-
-def run_search_logic(query, unit):
-    return {"검색결과": ["이 버전은 개정문 중심 파일입니다."]}
